@@ -1,5 +1,4 @@
-Cython
 kivy>=2.0.0
 requests>=2.25.0
 buildozer>=1.2.0
-jnius>=1.1.0
+pyjnius
