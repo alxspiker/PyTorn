@@ -1,5 +1,6 @@
 name: Build Android APK
 
+
 on:
   push:
     branches: [ main ]
@@ -53,7 +54,7 @@ jobs:
         sudo apt-get install -y pkg-config
 
     - name: Accept Android SDK licenses
-      run: yes | buildozer android update 2>&1 | grep -v "no version information"
+      run: yes | buildozer android update 2>&1 || true
 
     - name: Build with Buildozer
       run: |
@@ -61,7 +62,7 @@ jobs:
         buildozer android debug
 
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: pytorn-debug
         path: bin/*.apk
