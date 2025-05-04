@@ -32,7 +32,7 @@ jobs:
         pyinstaller --onefile --windowed --name PyTorn app/main.py
 
     - name: Upload executable
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: pytorn-windows
         path: dist/PyTorn.exe
