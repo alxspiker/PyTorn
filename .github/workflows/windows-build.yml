@@ -21,15 +21,27 @@ jobs:
         python-version: 3.9
 
     - name: Install dependencies
+      # Use PowerShell and ensure errors stop the script
+      shell: pwsh
       run: |
+        $ErrorActionPreference = "Stop" # Stop script on error
         python -m pip install --upgrade pip
+        Write-Host "Installing Cython..."
         pip install Cython
+        Write-Host "Installing requirements from requirements.txt..."
         pip install -r requirements.txt
+        Write-Host "Installing PyInstaller..."
         pip install pyinstaller
+        Write-Host "Dependencies installed successfully."
 
     - name: Build executable
+      # Use PowerShell and ensure errors stop the script
+      shell: pwsh
       run: |
+        $ErrorActionPreference = "Stop" # Stop script on error
+        Write-Host "Running PyInstaller..."
         pyinstaller --onefile --windowed --name PyTorn app/main.py
+        Write-Host "PyInstaller build completed."
 
     - name: Upload executable and requirements artifact
       uses: actions/upload-artifact@v4
