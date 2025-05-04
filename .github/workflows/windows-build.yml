@@ -1,44 +1,84 @@
 name: Build Windows Executable
-
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:  # Allows manual triggering
-
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4 # Use v4
-
+      uses: actions/checkout@v4
+    
     - name: Set up Python
-      uses: actions/setup-python@v5 # Use v5
+      uses: actions/setup-python@v5
       with:
         python-version: 3.9
-
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # Install Cython first if jnius is needed for Windows build
-        # Consider removing jnius/buildozer from requirements.txt if not needed for Windows
+        # Install Kivy dependencies first
+        pip install docutils pygments pypiwin32 kivy_deps.sdl2 kivy_deps.glew kivy_deps.angle
         pip install Cython
+        # Install all requirements
         pip install -r requirements.txt
+        # Install PyInstaller
         pip install pyinstaller
-      # Add error handling if needed: shell: pwsh {0} -ErrorAction Stop
-
+      shell: pwsh
+    
+    - name: Debug dependency installation
+      run: |
+        pip list
+        echo "Checking for Kivy installation:"
+        pip show kivy
+      shell: pwsh
+    
     - name: Build executable
       run: |
-        # Build the executable with PyInstaller
-        pyinstaller --onefile --windowed --name PyTorn app/main.py
-      # Add error handling if needed: shell: pwsh {0} -ErrorAction Stop
+        # Create a PyInstaller spec file with Kivy hooks
+        echo "Creating PyInstaller spec file with Kivy configuration..."
+        
+        # Create hooks directory if it doesn't exist
+        mkdir -p hooks
+        
+        # Create a hook file for Kivy
+        @"
+from kivy.deps import sdl2, glew
 
+# Function to collect Kivy binary dependencies
+def hook(hook_api):
+    hook_api.add_datas([
+        (sdl2.dep_bins, '.'),
+        (glew.dep_bins, '.')
+    ])
+"@ | Out-File -FilePath "hooks\hook-kivy.deps.py" -Encoding utf8
+        
+        # Build with additional configuration
+        pyinstaller --onefile --windowed --name PyTorn --additional-hooks-dir=hooks --hidden-import=kivy --hidden-import=kivy.deps.sdl2 --hidden-import=kivy.deps.glew --hidden-import=kivy.deps.angle app/main.py
+      shell: pwsh
+    
+    # Copy additional resources if needed
+    - name: Copy resources
+      run: |
+        # If you have additional resources like images, fonts, etc.
+        # Copy them to the dist directory
+        # Example: Copy-Item -Path "assets" -Destination "dist" -Recurse -Force
+      shell: pwsh
+    
     - name: Upload executable artifact
       uses: actions/upload-artifact@v4
       with:
-        name: pytorn-windows-exe # Artifact name on GitHub (will download as .zip)
-        path: dist/PyTorn.exe    # Path to the actual executable to be zipped
-        if-no-files-found: error # Fail the workflow if the exe wasn't created
+        name: pytorn-windows-exe
+        path: dist/PyTorn.exe
+        if-no-files-found: error
+    
+    # Also upload entire dist directory in case there are DLLs or other required files
+    - name: Upload full distribution
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytorn-windows-full
+        path: dist/
+        if-no-files-found: error
